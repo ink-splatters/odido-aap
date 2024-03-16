@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import logging
 import colorlog
+import http.client as http_client
 import os
 
 # Credits
@@ -14,7 +15,6 @@ import os
 # fd nl.tmobile.mytmobile "$HOME"/Library/Containers | rg 'Library/Caches' | xargs -n1 -I% sqlite3 -json '%/Cache.db' 'select * from cfurl_cache_blob_data'  | jq  '.[].proto_props | select (. != null)' | rg -o 'Bearer ([0-9a-f]{32})' --replace '$1' | tail -1
 if __name__ == "__main__":
 
-    import http.client as http_client
 
     http_client.HTTPConnection.debuglevel = 1
 
@@ -29,6 +29,8 @@ if __name__ == "__main__":
 
     if "ODIDO_TOKEN" not in os.environ:
         log.fatal("ODIDO_TOKEN env var is required")
+
+    threshold=int(os.environ["ODIDO_THRESHOLD"] if "ODIDO_THRESHOLD" in os.environ else 1500)
 
     accesstoken = os.environ["ODIDO_TOKEN"]
 
@@ -61,16 +63,17 @@ if __name__ == "__main__":
             remaining = bundle["Remaining"]
             totalRemaining += remaining["Value"]
 
-    if round(totalRemaining / 1024, 0) < 1500:
-        self.interval = 600
+    #if round(totalRemaining / 1024, 0) < 1500:
+     #   self.interval = 600
 
-    if round(totalRemaining / 1024, 0) < 1000:
+    log.info(f"threshold: {threshold}")
+    if round(totalRemaining / 1024, 0) < threshold:
         post_resp = requests.post(
             subscriptionUrl + "/roamingbundles", json=data, headers=headers
         )
         log.debug(post_resp)
         log.info("2000MB aangevuld")
-        self.interval = int(self.args["interval"])
+        # self.interval = int(self.args["interval"])
     else:
         log.info(
             "There is "
