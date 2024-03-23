@@ -1,4 +1,4 @@
-# Monkey Buiseness
+# Odido App 
 
 odido.nl aanvullers automated
 
@@ -7,33 +7,36 @@ odido.nl aanvullers automated
 
 assuming Python is installed
 
-
-```shell
+```sh
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Getting Token
+## Usage
 
-```shell
-brew install jq ripgrep
+```sh
+source .venv/bin/activate
+./odido.py
 ```
 
-given the app is installed via AppStore:
+**NOTE:** you may want the script to be run by `cron`. In this case, you will also want ODIDO_THRESHOLD env variable
+(in megabytes) to be set to some 300-350. 
 
-```shell
- fd nl.tmobile.mytmobile "$HOME"/Library/Containers | \
-    rg 'Library/Caches' | \
-    xargs -n1 -I% sqlite3 -json '%/Cache.db' 'select * from cfurl_cache_blob_data' | \
-    jq  '.[].proto_props | select (. != null)' | \
-    rg -o 'Bearer ([0-9a-f]{32})' --replace '$1' | \
-    tail -1
- ```
+Otherwise the API will return an error: it's only allowed to activate the next aanvuller when
+around ~350mb is left from the previous one. 
 
-expose it via `ODIDO_TOKEN` env var
+## Getting Bearer Token
+
+**NOTE**: this is only supported on Apple Silicon and requires authenticated Odido iOS app.
+Consult [tweakers.net](https://tweakers.net) for more methods to obtain the token
+
+```sh
+./get_bearer_apple_silicon.sh
+```
 
 Enjoy!
 
 ## Credits
-# [Romkabouter430](https://tweakers.net/gallery/2749)
+
+[Romkabouter430](https://tweakers.net/gallery/2749)
