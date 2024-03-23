@@ -11,9 +11,12 @@ import os
 # Credits
 # [Romkabouter430](https://tweakers.net/gallery/2749)
 
-# get token on Apple Silicon, given Odido app is installed via App Store:
-# fd nl.tmobile.mytmobile "$HOME"/Library/Containers | rg 'Library/Caches' | xargs -n1 -I% sqlite3 -json '%/Cache.db' 'select * from cfurl_cache_blob_data'  | jq  '.[].proto_props | select (. != null)' | rg -o 'Bearer ([0-9a-f]{32})' --replace '$1' | tail -1
 if __name__ == "__main__":
+
+    def check(code: int):
+        if code != 200:
+            log.fatal(f"request failed with code: {code}")
+            exit(1)
 
     http_client.HTTPConnection.debuglevel = 1
 
@@ -27,7 +30,8 @@ if __name__ == "__main__":
     log.addHandler(handler)
 
     if "ODIDO_TOKEN" not in os.environ:
-        log.fatal("ODIDO_TOKEN env var is required")
+        log.fatal("ODIDO_TOKEN environment variable is not set")
+        exit(1)
 
     threshold = int(
         os.environ["ODIDO_THRESHOLD"] if "ODIDO_THRESHOLD" in os.environ else 1500
@@ -45,14 +49,19 @@ if __name__ == "__main__":
         "https://capi.t-mobile.nl/account/current?resourcelabel=LinkedSubscriptions",
         headers=headers,
     )
+    check(response.status_code)
     dict = json.loads(response.content)
 
     # call the Resources Url
     response = requests.get(dict["Resources"][0]["Url"], headers=headers)
+    check(response.status_code)
+
     dict = json.loads(response.content)
 
     subscriptionUrl = dict["subscriptions"][0]["SubscriptionURL"]
     response = requests.get(subscriptionUrl + "/roamingbundles", headers=headers)
+    check(response.status_code)
+
     dict = json.loads(response.content)
 
     data = {"Bundles": [{"BuyingCode": "A0DAY01"}]}
@@ -69,6 +78,7 @@ if __name__ == "__main__":
         post_resp = requests.post(
             subscriptionUrl + "/roamingbundles", json=data, headers=headers
         )
+        check(response.status_code)
         log.debug(post_resp)
         log.info("2000MB aangevuld")
         # self.interval = int(self.args["interval"])
