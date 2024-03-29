@@ -13,9 +13,11 @@ import os
 
 if __name__ == "__main__":
 
-    def check(code: int):
+    def check(response):
+        code = response.status_code
+        reason = response.reason
         if code != 200:
-            log.fatal(f"request failed with code: {code}")
+            log.fatal(f"{code}: {reason}")
             exit(1)
 
     http_client.HTTPConnection.debuglevel = 1
@@ -49,18 +51,18 @@ if __name__ == "__main__":
         "https://capi.t-mobile.nl/account/current?resourcelabel=LinkedSubscriptions",
         headers=headers,
     )
-    check(response.status_code)
+    check(response)
     dict = json.loads(response.content)
 
     # call the Resources Url
     response = requests.get(dict["Resources"][0]["Url"], headers=headers)
-    check(response.status_code)
+    check(response)
 
     dict = json.loads(response.content)
 
     subscriptionUrl = dict["subscriptions"][0]["SubscriptionURL"]
     response = requests.get(subscriptionUrl + "/roamingbundles", headers=headers)
-    check(response.status_code)
+    check(response)
 
     dict = json.loads(response.content)
 
@@ -75,10 +77,10 @@ if __name__ == "__main__":
 
     log.info(f"threshold: {threshold}")
     if round(totalRemaining / 1024, 0) < threshold:
-        post_resp = requests.post(
+        response = requests.post(
             subscriptionUrl + "/roamingbundles", json=data, headers=headers
         )
-        check(response.status_code)
+        check(response)
         log.debug(post_resp)
         log.info("2000MB aangevuld")
         # self.interval = int(self.args["interval"])
