@@ -16,7 +16,7 @@ if __name__ == "__main__":
     def check(response):
         code = response.status_code
         reason = response.reason
-        if code != 200:
+        if code not in [ 200, 202]:
             log.fatal(f"{code}: {reason}")
             exit(1)
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
             subscriptionUrl + "/roamingbundles", json=data, headers=headers
         )
         check(response)
-        log.debug(post_resp)
+        log.debug(response)
         log.info("2000MB aangevuld")
         # self.interval = int(self.args["interval"])
     else:
