@@ -1,7 +1,6 @@
-# Odido App 
+# odido aap
 
 odido.nl aanvullers automated
-
 
 ## Installation
 
@@ -40,3 +39,4 @@ Enjoy!
 ## Credits
 
 [Romkabouter430](https://tweakers.net/gallery/2749)
+
