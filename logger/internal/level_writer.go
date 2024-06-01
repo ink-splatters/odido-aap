@@ -18,3 +18,8 @@ func (lw *LevelWriter) WriteLevel(l zerolog.Level, p []byte) (n int, err error) 
    return len(p), nil
 }
 
+
+func NewLevelWriter(writer *io.Writer, zerologLevel zerolog.Level) *LevelWriter {
+		return &LevelWriter{Writer: *writer, Level: zerologLevel}
+}
+
