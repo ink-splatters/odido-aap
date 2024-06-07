@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/adrg/xdg"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
