@@ -5,9 +5,7 @@ use clap::Parser;
 mod api;
 mod commands;
 use commands::{Commands, Context};
-use std::fs::OpenOptions;
-use std::io::Write;
-use std::process;
+
 
 fn styles() -> Styles {
     Styles::styled()
@@ -60,8 +58,6 @@ async fn main() {
     let cli = Cli::parse();
     let ctx = Context {
         threshold: cli.threshold,
-        threshold_max: cli.threshold, // not used, but struct requires
-        aanvuller_size: cli.aanvuller_size,
     };
     match cli.command.unwrap_or(Commands::Status) {
         Commands::Status => commands::status::run(&ctx).await,
@@ -70,7 +66,4 @@ async fn main() {
     }
 }
 
-fn log_error_to_file(msg: &str) {
-    let mut file = OpenOptions::new().append(true).create(true).open("odido.log").unwrap();
-    let _ = writeln!(file, "{}", msg);
-}
+
