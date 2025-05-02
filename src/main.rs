@@ -2,11 +2,14 @@
 
 use clap::builder::styling::*;
 use clap::Parser;
+mod api;
 mod commands;
 use commands::{Commands, Context};
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::process;
 
 fn styles() -> Styles {
-    // Emulate clap v3 default colors
     Styles::styled()
         .header(Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))).bold())
         .usage(Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))))
@@ -20,7 +23,7 @@ fn styles() -> Styles {
 /// odido.nl aanvullers 
 #[derive(Debug,Parser)]
 #[command(version,styles=styles())]
-struct Cli {
+pub struct Cli {
     /// odido.nl bearer token [env: ODIDO_TOKEN]
     #[arg(
         long,
@@ -40,15 +43,6 @@ struct Cli {
     threshold: u32,
 
     #[arg(
-        long = "threshold-max",
-        env = "ODIDO_THRESHOLD_MAX",
-        value_name="MB",
-        default_value_t = 22000,
-        hide = true
-    )]
-    threshold_max: u32,
-
-    #[arg(
         long = "aanvuller-size",
         env = "ODIDO_AANVULLER_SIZE",
         value_name="MB",
@@ -58,19 +52,25 @@ struct Cli {
     aanvuller_size: u32,
 
     #[command(subcommand)]
-    command: Option<Commands>
+    pub command: Option<Commands>,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
     let ctx = Context {
         threshold: cli.threshold,
-        threshold_max: cli.threshold_max,
+        threshold_max: cli.threshold, // not used, but struct requires
         aanvuller_size: cli.aanvuller_size,
     };
     match cli.command.unwrap_or(Commands::Status) {
-        Commands::Status => commands::status::run(&ctx),
-        Commands::Aanvullen => commands::aanvullen::run(&ctx),
+        Commands::Status => commands::status::run(&ctx).await,
+        Commands::Aanvullen => commands::aanvullen::run(&ctx).await,
         Commands::Daemon => commands::daemon::run(&ctx),
     }
+}
+
+fn log_error_to_file(msg: &str) {
+    let mut file = OpenOptions::new().append(true).create(true).open("odido.log").unwrap();
+    let _ = writeln!(file, "{}", msg);
 }
