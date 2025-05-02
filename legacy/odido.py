@@ -16,7 +16,7 @@ if __name__ == "__main__":
     def check(response):
         code = response.status_code
         reason = response.reason
-        if code not in [ 200, 202]:
+        if code not in [200, 202]:
             log.fatal(f"{code}: {reason}")
             exit(1)
 
@@ -48,14 +48,9 @@ if __name__ == "__main__":
         "Accept": "application/json",
     }
     response = requests.get(
-        "https://capi.t-mobile.nl/account/current?resourcelabel=LinkedSubscriptions",
+        "https://capi.odido.nl/c88084b603f5/linkedsubscriptions",
         headers=headers,
     )
-    check(response)
-    dict = json.loads(response.content)
-
-    # call the Resources Url
-    response = requests.get(dict["Resources"][0]["Url"], headers=headers)
     check(response)
 
     dict = json.loads(response.content)
