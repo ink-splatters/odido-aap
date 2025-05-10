@@ -4,13 +4,7 @@ odido.nl aanvullers automated
 
 ## Installation
 
-assuming Python is installed
-
-```sh
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+TODO
 
 ## Usage
 
