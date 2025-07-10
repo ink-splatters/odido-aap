@@ -1,53 +1,42 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::{ArgAction::Count, Parser};
-use reqwest::{header, Client, StatusCode};
+use reqwest::{Client, StatusCode, header};
 use serde::Deserialize;
 use std::time::{Duration, Instant};
 use tracing::{error, info, trace};
 
-mod log; // our pretty one-liners
+mod log;
 
-/// Data-top-up helper for Odido (T-Mobile NL).
+/* ───────── CLI ───────── */
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Cli {
-    /// Verbosity: -v = INFO, -vv = DEBUG, -vvv = TRACE
     #[arg(short, long, action = Count, global = true)]
     verbose: u8,
-
-    /// Minimum MB that must remain, otherwise we top-up.
     #[arg(short, long, env = "ODIDO_THRESHOLD", default_value_t = 1_500)]
     threshold: u32,
-
-    /// Bearer token (env ODIDO_TOKEN).
     #[arg(short = 't', long, env = "ODIDO_TOKEN")]
     token: String,
-
-    /// Noisy wire-level traces.
     #[arg(long)]
     wire: bool,
 }
 
-/* ───────── models coming from the JSON API ───────── */
-
+/* ───────── JSON models ───────── */
 #[derive(Deserialize, Debug)]
 struct LinkedSubscriptions {
     #[serde(rename = "subscriptions")]
     subs: Vec<Subscription>,
 }
-
 #[derive(Deserialize, Debug)]
 struct Subscription {
     #[serde(rename = "SubscriptionURL")]
     url: String,
 }
-
 #[derive(Deserialize, Debug)]
 struct BundleList {
     #[serde(rename = "Bundles")]
     bundles: Vec<Bundle>,
 }
-
 #[derive(Deserialize, Debug)]
 struct Bundle {
     #[serde(rename = "ZoneColor")]
@@ -55,7 +44,6 @@ struct Bundle {
     #[serde(rename = "Remaining")]
     remaining: Remaining,
 }
-
 #[derive(Deserialize, Debug)]
 struct Remaining {
     #[serde(rename = "Value")]
@@ -63,7 +51,6 @@ struct Remaining {
 }
 
 /* ───────── main ───────── */
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -74,12 +61,11 @@ async fn main() -> Result<()> {
 }
 
 /* ───────── tracing setup ───────── */
-
 fn init_tracing(verbosity: u8, wire: bool) -> Result<()> {
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
     let lvl = match verbosity {
-        0 => "info",
+        0 => "warn", // our pretty println! handles user output
         1 => "debug",
         _ => "trace",
     };
@@ -94,37 +80,35 @@ fn init_tracing(verbosity: u8, wire: bool) -> Result<()> {
         }
     }
 
-    let fmt_layer = fmt::layer().compact().with_target(false);
-
     tracing_subscriber::registry()
         .with(filter)
-        .with(fmt_layer)
+        .with(fmt::layer().compact())
         .init();
-
     Ok(())
 }
 
 /* ───────── reqwest client ───────── */
-
 fn build_client() -> Result<Client> {
     let mut h = header::HeaderMap::new();
     h.insert(
         header::USER_AGENT,
         header::HeaderValue::from_static("T-Mobile 5.3.28 (Android 10; 10)"),
     );
-    h.insert(header::ACCEPT, header::HeaderValue::from_static("application/json"));
+    h.insert(
+        header::ACCEPT,
+        header::HeaderValue::from_static("application/json"),
+    );
 
     Ok(Client::builder()
         .default_headers(h)
         .timeout(Duration::from_secs(10))
         .pool_idle_timeout(Duration::from_secs(90))
         .pool_max_idle_per_host(8)
-        .http2_prior_knowledge() // OK for capi.odido.nl
+        .http2_prior_knowledge()
         .build()?)
 }
 
 /* ───────── business logic ───────── */
-
 async fn process(client: &Client, cli: &Cli) -> Result<()> {
     let bearer = format!("Bearer {}", cli.token);
 
@@ -142,26 +126,31 @@ async fn process(client: &Client, cli: &Cli) -> Result<()> {
         .filter(|b| b.zone_color == "NL")
         .map(|b| b.remaining.value as u64)
         .sum();
-
     let remaining_mb = (remaining_kb / 1024) as u32;
 
     info!(threshold = cli.threshold, remaining_mb, "quota status");
 
     if remaining_mb < cli.threshold {
         top_up(client, &bearer, &first.url).await?;
-        info!("✅  2000 MB bundle purchased");
+        println!(
+            "{} ✔  2000 MB bundle purchased",
+            chrono::Local::now().format("[%H:%M:%S]")
+        );
     } else {
-        info!("Nothing to do, {remaining_mb} MB still available (≥ threshold)");
+        println!(
+            "{} Nothing to do, {} MB still available (≥ threshold)",
+            chrono::Local::now().format("[%H:%M:%S]"),
+            remaining_mb
+        );
     }
     Ok(())
 }
 
-/* ───────── helpers with pretty logging ───────── */
-
+/* ───────── helpers ───────── */
 async fn linked_subscriptions(client: &Client, bearer: &str) -> Result<LinkedSubscriptions> {
     let url = "https://capi.odido.nl/c88084b603f5/linkedsubscriptions";
     log::outbound("GET", url);
-    let started = Instant::now();
+    let start = Instant::now();
 
     let res = client
         .get(url)
@@ -175,7 +164,7 @@ async fn linked_subscriptions(client: &Client, bearer: &str) -> Result<LinkedSub
     let res = check_status(res).await?;
     let body = res.json::<LinkedSubscriptions>().await?;
 
-    log::inbound(status.as_u16(), bytes, started.elapsed());
+    log::inbound(status.as_u16(), url, bytes, start.elapsed());
     trace!(?body);
     Ok(body)
 }
@@ -183,7 +172,7 @@ async fn linked_subscriptions(client: &Client, bearer: &str) -> Result<LinkedSub
 async fn roaming_bundles(client: &Client, bearer: &str, subs_url: &str) -> Result<BundleList> {
     let url = format!("{subs_url}/roamingbundles");
     log::outbound("GET", &url);
-    let started = Instant::now();
+    let start = Instant::now();
 
     let res = client
         .get(&url)
@@ -197,7 +186,7 @@ async fn roaming_bundles(client: &Client, bearer: &str, subs_url: &str) -> Resul
     let res = check_status(res).await?;
     let body = res.json::<BundleList>().await?;
 
-    log::inbound(status.as_u16(), bytes, started.elapsed());
+    log::inbound(status.as_u16(), &url, bytes, start.elapsed());
     trace!(?body);
     Ok(body)
 }
@@ -207,7 +196,7 @@ async fn top_up(client: &Client, bearer: &str, subs_url: &str) -> Result<()> {
     let payload = &serde_json::json!({ "Bundles": [{ "BuyingCode": "A0DAY01" }] });
 
     log::outbound("POST", &url);
-    let started = Instant::now();
+    let start = Instant::now();
 
     let res = client
         .post(&url)
@@ -221,12 +210,11 @@ async fn top_up(client: &Client, bearer: &str, subs_url: &str) -> Result<()> {
     let bytes = res.content_length().unwrap_or(0) as usize;
     check_status(res).await?;
 
-    log::inbound(status.as_u16(), bytes, started.elapsed());
+    log::inbound(status.as_u16(), &url, bytes, start.elapsed());
     Ok(())
 }
 
 /* ───────── status helper ───────── */
-
 async fn check_status(res: reqwest::Response) -> Result<reqwest::Response> {
     let status = res.status();
     if !(status == StatusCode::OK || status == StatusCode::ACCEPTED) {
