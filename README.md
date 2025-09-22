@@ -37,7 +37,7 @@ If the previous method is unaccessible to you, you can obtain credentials from i
 
 1. Locate Odido.nl app in iMazing
 1. Export it (in the form of `.imazingapp`), rename to .zip, extract all the data and locate `Cache.db`. If `Cache.db-wal` file is present, it must remain.
-1. Set `CACHE_PATH` env var to the correct PATH with `Cache.db`
+1. Set `CACHE_DIR` env var to the directory containing `Cache.db`
 1. If all set correctly, you will get the same result - credentials written in `.env`
 
 ## Usage
