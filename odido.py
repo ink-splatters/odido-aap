@@ -6,19 +6,30 @@ import os
 
 import colorlog
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def check(response):
+    code = response.status_code
+    reason = response.reason
+    if code not in (200, 202):
+        log.fatal(f"{code}: {reason}")
+        exit(1)
+
+
+def get_required_var(name: str) -> str:
+    if name not in os.environ:
+        log.fatal(f"{name} environment variable is not set")
+        exit(1)
+    return os.environ[name]
+
 
 # Credits
 # [Romkabouter430](https://tweakers.net/gallery/2749)
 
 if __name__ == "__main__":
-
-    def check(response):
-        code = response.status_code
-        reason = response.reason
-        if code not in [200, 202]:
-            log.fatal(f"{code}: {reason}")
-            exit(1)
-
     http_client.HTTPConnection.debuglevel = 1
 
     handler = colorlog.StreamHandler()
@@ -28,22 +39,18 @@ if __name__ == "__main__":
     log.setLevel(logging.DEBUG)
     log.addHandler(handler)
 
-    if "ODIDO_TOKEN" not in os.environ:
-        log.fatal("ODIDO_TOKEN environment variable is not set")
-        exit(1)
+    user_id = get_required_var("ODIDO_USER_ID")
+    accesstoken = get_required_var("ODIDO_TOKEN")
 
     threshold = int(os.environ.get("ODIDO_THRESHOLD", 1500))
 
-    accesstoken = os.environ["ODIDO_TOKEN"]
-
-    # Create new header with Authorization
     headers = {
-        "Authorization": "Bearer " + accesstoken,
+        "Authorization": f"Bearer {accesstoken}",
         "User-Agent": "T-Mobile 5.3.28 (Android 10; 10)",
         "Accept": "application/json",
     }
     response = requests.get(
-        "https://capi.odido.nl/c88084b603f5/linkedsubscriptions",
+        f"https://capi.odido.nl/{user_id}/linkedsubscriptions",
         headers=headers,
     )
     check(response)
