@@ -19,7 +19,7 @@ struct Cli {
     token: String,
     #[arg(short = 'u', long, env = "ODIDO_USER_ID")]
     user_id: String,
-    #[arg(long, env = "ODIDO_TIMEOUT", default_value="30")]
+    #[arg(long, env = "ODIDO_TIMEOUT", default_value = "30")]
     timeout: u64,
 
     #[arg(long)]
@@ -152,7 +152,11 @@ async fn process(client: &Client, cli: &Cli) -> Result<()> {
 }
 
 /* ───────── helpers ───────── */
-async fn linked_subscriptions(client: &Client, user_id: &str, bearer: &str) -> Result<LinkedSubscriptions> {
+async fn linked_subscriptions(
+    client: &Client,
+    user_id: &str,
+    bearer: &str,
+) -> Result<LinkedSubscriptions> {
     let url = format!("https://capi.odido.nl/{}/linkedsubscriptions", &user_id);
     log::outbound("GET", &url);
     let start = Instant::now();

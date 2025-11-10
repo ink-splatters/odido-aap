@@ -18,12 +18,11 @@ TODO
 ./get_creds_from_cache_db.sh
 ```
 
-It will create .env file for you with variables neded for the script to work. if you installed direnv and followed
-[Initializing Env](#initializing-env) you are all set.
+It will create .env file for you with variables needed for the script to work.
 
 #### From iMazing Backup
 
-If the previous method is unaccessible to you, you can obtain credentials from iMazing backup of your iPhone or iPad.
+If the previous method is inaccessible to you, you can obtain credentials from iMazing backup of your iPhone or iPad.
 
 1. Locate Odido.nl app in iMazing
 1. Export it (in the form of `.imazingapp`), rename to .zip, extract all the data and locate `Cache.db`. If `Cache.db-wal` file is present, it must remain.
@@ -32,22 +31,7 @@ If the previous method is unaccessible to you, you can obtain credentials from i
 
 ## Usage
 
-Make sure you followed [Initializing env](#initializing-env). Among other things, direnv should have activated python virtual env
-for you.
-
-Now, run:
-
-```sh
-./odido.py
-```
-
-**NOTE:** you may want the script to be run by `cron`. In this case, you will also want ODIDO_THRESHOLD env variable
-(in megabytes) to be set to some 300-350.
-
-Otherwise the API will return an error: it's only allowed to activate the next aanvuller when
-around ~350mb is left from the previous one.
-
-Enjoy!
+TODO
 
 ## Credits
 
