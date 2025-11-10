@@ -19,6 +19,9 @@ struct Cli {
     token: String,
     #[arg(short = 'u', long, env = "ODIDO_USER_ID")]
     user_id: String,
+    #[arg(long, env = "ODIDO_TIMEOUT", default_value="30")]
+    timeout: u64,
+
     #[arg(long)]
     wire: bool,
 }
@@ -57,7 +60,7 @@ struct Remaining {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
     init_tracing(cli.verbose, cli.wire)?;
-    let client = build_client()?;
+    let client = build_client(&cli)?;
     process(&client, &cli).await?;
     Ok(())
 }
@@ -90,7 +93,7 @@ fn init_tracing(verbosity: u8, wire: bool) -> Result<()> {
 }
 
 /* ───────── reqwest client ───────── */
-fn build_client() -> Result<Client> {
+fn build_client(cli: &Cli) -> Result<Client> {
     let mut h = header::HeaderMap::new();
     h.insert(
         header::USER_AGENT,
@@ -103,7 +106,7 @@ fn build_client() -> Result<Client> {
 
     Ok(Client::builder()
         .default_headers(h)
-        .timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(cli.timeout))
         .pool_idle_timeout(Duration::from_secs(90))
         .pool_max_idle_per_host(8)
         .http2_prior_knowledge()
