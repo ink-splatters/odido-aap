@@ -1,9 +1,15 @@
 .DS_Store
-__pycache__
-.venv
+build
+dist
+.env
+/*.binarycookies
+/*.csv
+/*.json
+/*.txt
 
 
 # Added by cargo
 
 /target
-/.env
+/.direnv
+/.pre-commit-config.yaml
