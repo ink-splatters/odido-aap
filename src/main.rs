@@ -117,7 +117,7 @@ fn build_client(cli: &Cli) -> Result<Client> {
 async fn process(client: &Client, cli: &Cli) -> Result<()> {
     let bearer = format!("Bearer {}", cli.token);
 
-    let subs = linked_subscriptions(client, &cli.user_id.as_str(), &bearer).await?;
+    let subs = linked_subscriptions(client, cli.user_id.as_str(), &bearer).await?;
     let first = subs
         .subs
         .first()
