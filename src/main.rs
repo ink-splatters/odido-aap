@@ -17,6 +17,8 @@ struct Cli {
     threshold: u32,
     #[arg(short = 't', long, env = "ODIDO_TOKEN")]
     token: String,
+    #[arg(short = 'u', long, env = "ODIDO_USER_ID")]
+    user_id: String,
     #[arg(long)]
     wire: bool,
 }
@@ -112,7 +114,7 @@ fn build_client() -> Result<Client> {
 async fn process(client: &Client, cli: &Cli) -> Result<()> {
     let bearer = format!("Bearer {}", cli.token);
 
-    let subs = linked_subscriptions(client, &bearer).await?;
+    let subs = linked_subscriptions(client, &cli.user_id.as_str(), &bearer).await?;
     let first = subs
         .subs
         .first()
@@ -147,13 +149,13 @@ async fn process(client: &Client, cli: &Cli) -> Result<()> {
 }
 
 /* ───────── helpers ───────── */
-async fn linked_subscriptions(client: &Client, bearer: &str) -> Result<LinkedSubscriptions> {
-    let url = "https://capi.odido.nl/c88084b603f5/linkedsubscriptions";
-    log::outbound("GET", url);
+async fn linked_subscriptions(client: &Client, user_id: &str, bearer: &str) -> Result<LinkedSubscriptions> {
+    let url = format!("https://capi.odido.nl/{}/linkedsubscriptions", &user_id);
+    log::outbound("GET", &url);
     let start = Instant::now();
 
     let res = client
-        .get(url)
+        .get(&url)
         .header(header::AUTHORIZATION, bearer)
         .send()
         .await
@@ -164,7 +166,7 @@ async fn linked_subscriptions(client: &Client, bearer: &str) -> Result<LinkedSub
     let res = check_status(res).await?;
     let body = res.json::<LinkedSubscriptions>().await?;
 
-    log::inbound(status.as_u16(), url, bytes, start.elapsed());
+    log::inbound(status.as_u16(), &url, bytes, start.elapsed());
     trace!(?body);
     Ok(body)
 }
