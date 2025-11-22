@@ -61,7 +61,7 @@
             name = "odido-aap";
           };
         };
-        config.packages.default = config.packages.odido-aap;
+        config.packages.default = config.packages.odido-aap-native;
       };
 
       flake = {
