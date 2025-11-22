@@ -16,13 +16,8 @@
           enable = true;
           settings.configuration = {
             MD013 = false; # Disable line length
-            MD022 = false; # Don't require blank lines around headings
-            MD026 = false; # Allow trailing punctuation in headings
-            MD031 = false; # Don't require blank lines around fences
             MD033 = false; # Allow inline HTML
             MD040 = false; # Don't require language for code blocks
-            MD041 = false; # First line doesn't need to be a heading
-            MD012 = false; # Allow multiple blank lines
           };
         };
 
