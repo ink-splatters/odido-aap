@@ -103,10 +103,25 @@ async fn main() -> Result<()> {
     init_tracing(cli.verbose, cli.wire)?;
 
     match cli.command {
-        Some(Command::Check { threshold, token, user_id, timeout, refresh, no_cache }) => {
+        Some(Command::Check {
+            threshold,
+            token,
+            user_id,
+            timeout,
+            refresh,
+            no_cache,
+        }) => {
             let client = build_client(timeout)?;
             let cache = init_cache(false).await?;
-            check_and_topup(&client, &token, &user_id, threshold, &cache, refresh || no_cache).await?;
+            check_and_topup(
+                &client,
+                &token,
+                &user_id,
+                threshold,
+                &cache,
+                refresh || no_cache,
+            )
+            .await?;
         }
         Some(Command::Cache { action }) => {
             run_cache_command(action).await?;
@@ -277,28 +292,14 @@ async fn check_and_topup(
 ) -> Result<()> {
     let bearer = format!("Bearer {}", token);
 
-    let subs = linked_subscriptions(
-        client,
-        user_id,
-        &bearer,
-        cache,
-        bypass_cache,
-    )
-    .await?;
+    let subs = linked_subscriptions(client, user_id, &bearer, cache, bypass_cache).await?;
     let first = subs
         .subs
         .first()
         .ok_or_else(|| anyhow!("no subscription returned"))?;
 
-    let bundles = roaming_bundles(
-        client,
-        &bearer,
-        &first.url,
-        cache,
-        user_id,
-        bypass_cache,
-    )
-    .await?;
+    let bundles =
+        roaming_bundles(client, &bearer, &first.url, cache, user_id, bypass_cache).await?;
 
     let remaining_kb: u64 = bundles
         .bundles
@@ -464,7 +465,8 @@ async fn top_up(
 fn extract_msisdn(subs_url: &str) -> Result<&str> {
     subs_url
         .split('/')
-        .last()
+        .next_back()
+        .filter(|s| !s.is_empty())
         .ok_or_else(|| anyhow!("Invalid subscription URL: missing MSISDN"))
 }
 
@@ -477,4 +479,62 @@ async fn check_status(res: reqwest::Response) -> Result<reqwest::Response> {
         return Err(anyhow!("HTTP {} – {}", status, text));
     }
     Ok(res)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod extract_msisdn_tests {
+        use super::*;
+
+        #[test]
+        fn valid_url_extracts_msisdn() {
+            let result = extract_msisdn("https://api.odido.nl/subscriptions/0612345678");
+            assert_eq!(result.unwrap(), "0612345678");
+        }
+
+        #[test]
+        fn valid_url_with_long_path() {
+            let result = extract_msisdn("https://capi.odido.nl/user/123/subs/0687654321");
+            assert_eq!(result.unwrap(), "0687654321");
+        }
+
+        #[test]
+        fn bare_msisdn_is_valid() {
+            let result = extract_msisdn("0612345678");
+            assert_eq!(result.unwrap(), "0612345678");
+        }
+
+        #[test]
+        fn trailing_slash_returns_error() {
+            let result = extract_msisdn("https://api.odido.nl/subscriptions/0612345678/");
+            assert!(result.is_err());
+            assert!(result.unwrap_err().to_string().contains("missing MSISDN"));
+        }
+
+        #[test]
+        fn empty_string_returns_error() {
+            let result = extract_msisdn("");
+            assert!(result.is_err());
+        }
+
+        #[test]
+        fn only_slashes_returns_error() {
+            let result = extract_msisdn("///");
+            assert!(result.is_err());
+        }
+
+        #[test]
+        fn single_slash_returns_error() {
+            let result = extract_msisdn("/");
+            assert!(result.is_err());
+        }
+
+        #[test]
+        fn double_trailing_slash_returns_error() {
+            let result = extract_msisdn("https://api.odido.nl/subs/123//");
+            assert!(result.is_err());
+        }
+    }
 }

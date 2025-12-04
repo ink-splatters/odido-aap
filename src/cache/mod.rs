@@ -37,24 +37,9 @@ pub struct CacheStats {
 pub struct CacheKey;
 
 impl CacheKey {
-    /// Build key for user-specific resource
-    pub fn user_resource(user_id: &str, resource: &str, id: &str) -> String {
-        format!("user:{}:{}:{}", user_id, resource, id)
-    }
-
-    /// Build key for global resource
-    pub fn global(resource: &str) -> String {
-        format!("global:{}", resource)
-    }
-
-    /// Build key for subscription data
-    pub fn subscription(user_id: &str, msisdn: &str) -> String {
-        Self::user_resource(user_id, "subscription", msisdn)
-    }
-
     /// Build key for bundle data
     pub fn bundles(user_id: &str, msisdn: &str) -> String {
-        Self::user_resource(user_id, "bundles", msisdn)
+        format!("user:{}:bundles:{}", user_id, msisdn)
     }
 
     /// Build key for linked subscriptions
@@ -69,21 +54,86 @@ mod tests {
 
     #[test]
     fn test_cache_key_format() {
-        assert_eq!(
-            CacheKey::subscription("123", "456"),
-            "user:123:subscription:456"
-        );
-        assert_eq!(
-            CacheKey::bundles("123", "456"),
-            "user:123:bundles:456"
-        );
+        assert_eq!(CacheKey::bundles("123", "456"), "user:123:bundles:456");
         assert_eq!(
             CacheKey::linked_subscriptions("123"),
             "user:123:linkedsubscriptions"
         );
+    }
+
+    #[test]
+    fn test_cache_key_with_realistic_values() {
         assert_eq!(
-            CacheKey::global("countries"),
-            "global:countries"
+            CacheKey::bundles("user-abc-123", "0612345678"),
+            "user:user-abc-123:bundles:0612345678"
         );
+        assert_eq!(
+            CacheKey::linked_subscriptions("user-abc-123"),
+            "user:user-abc-123:linkedsubscriptions"
+        );
+    }
+
+    #[test]
+    fn test_cache_key_with_empty_strings() {
+        // Empty strings should still produce valid keys (caller's responsibility to validate)
+        assert_eq!(CacheKey::bundles("", ""), "user::bundles:");
+        assert_eq!(
+            CacheKey::linked_subscriptions(""),
+            "user::linkedsubscriptions"
+        );
+    }
+
+    #[test]
+    fn test_cache_key_with_special_characters() {
+        // Keys should handle special characters (they're just strings)
+        assert_eq!(
+            CacheKey::bundles("user/with/slashes", "phone:number"),
+            "user:user/with/slashes:bundles:phone:number"
+        );
+    }
+
+    #[test]
+    fn test_cache_key_with_unicode() {
+        assert_eq!(CacheKey::bundles("用户", "電話"), "user:用户:bundles:電話");
+        assert_eq!(
+            CacheKey::linked_subscriptions("émoji🎉"),
+            "user:émoji🎉:linkedsubscriptions"
+        );
+    }
+
+    #[test]
+    fn test_cache_key_uniqueness() {
+        // Different inputs should produce different keys
+        let key1 = CacheKey::bundles("user1", "phone1");
+        let key2 = CacheKey::bundles("user1", "phone2");
+        let key3 = CacheKey::bundles("user2", "phone1");
+        let key4 = CacheKey::linked_subscriptions("user1");
+
+        assert_ne!(key1, key2);
+        assert_ne!(key1, key3);
+        assert_ne!(key2, key3);
+        assert_ne!(key1, key4);
+    }
+
+    #[test]
+    fn test_cache_key_with_long_strings() {
+        let long_user_id = "a".repeat(1000);
+        let long_msisdn = "0".repeat(1000);
+
+        let key = CacheKey::bundles(&long_user_id, &long_msisdn);
+        assert!(key.starts_with("user:"));
+        assert!(key.contains(":bundles:"));
+        assert_eq!(key.len(), 5 + 1000 + 9 + 1000); // "user:" + user_id + ":bundles:" + msisdn
+    }
+
+    #[test]
+    fn test_cache_key_deterministic() {
+        // Same inputs should always produce the same key
+        for _ in 0..100 {
+            assert_eq!(
+                CacheKey::bundles("test_user", "test_phone"),
+                "user:test_user:bundles:test_phone"
+            );
+        }
     }
 }
