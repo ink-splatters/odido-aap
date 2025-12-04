@@ -17,9 +17,11 @@
 
   nixConfig = {
     extra-substituters = [
+      "https://aarch64-darwin.cachix.org"
       "https://nix-community.cachix.org"
     ];
     extra-trusted-public-keys = [
+      "aarch64-darwin.cachix.org-1:mEz8A1jcJveehs/ZbZUEjXZ65Aukk9bg2kmb0zL9XDA="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
   };
