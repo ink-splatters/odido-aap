@@ -6,7 +6,6 @@
   }: let
     inherit (config) craneLib;
     inherit (pkgs.llvmPackages_latest) clang bintools stdenv libcxx;
-    inherit (pkgs) apple-sdk_15;
 
     mkFlags = flags: lib.concatStringsSep " " (map (x: "-C ${x}") flags);
 
@@ -32,7 +31,6 @@
         nativeBuildInputs = [
           clang
           bintools
-          apple-sdk_15
         ];
       }
       // (builtins.removeAttrs args ["flags"]);
