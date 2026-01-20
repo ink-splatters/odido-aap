@@ -1,37 +1,31 @@
 {
   perSystem = {config, ...}: let
-    inherit (config) craneLib src commonArgs cargoArtifacts;
+    inherit (config) craneLib src commonArgs cargoArtifacts cargoArtifactsDev;
   in {
     checks = {
       inherit (config.packages) odido-aap;
 
-      odido-aap-clippy = craneLib.cargoClippy (
-        commonArgs
+      odido-aap-clippy = craneLib.cargoClippy (commonArgs
         // {
-          inherit cargoArtifacts;
+          cargoArtifacts = cargoArtifactsDev;
           cargoClippyExtraArgs = "--all-targets -- --deny warnings";
-        }
-      );
+        });
 
-      odido-aap-doc = craneLib.cargoDoc (
-        commonArgs
+      odido-aap-doc = craneLib.cargoDoc (commonArgs
         // {
           inherit cargoArtifacts;
-        }
-      );
+        });
 
       odido-aap-fmt = craneLib.cargoFmt {
         inherit src;
       };
 
-      odido-aap-nextest = craneLib.cargoNextest (
-        commonArgs
+      odido-aap-nextest = craneLib.cargoNextest (commonArgs
         // {
-          inherit cargoArtifacts;
+          cargoArtifacts = cargoArtifactsDev;
           partitions = 1;
           partitionType = "count";
-        }
-      );
+        });
     };
   };
 }

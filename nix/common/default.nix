@@ -1,4 +1,4 @@
-{
+{lib, ...}: {
   imports = [
     ./rust-toolchain.nix
     ./crane-lib.nix
@@ -8,16 +8,23 @@
 
   perSystem = {config, ...}: let
     inherit (config) craneLib commonArgs commonArgsNative cargoArtifacts cargoArtifactsNative;
+
+    meta = {
+      description = "Odido AAP CLI tool";
+      license = lib.licenses.mit;
+      mainProgram = "odido";
+    };
   in {
     packages = {
       odido-aap = craneLib.buildPackage (commonArgs
         // {
-          inherit cargoArtifacts;
+          inherit cargoArtifacts meta;
         });
 
       odido-aap-native = craneLib.buildPackage (commonArgsNative
         // {
-          inherit cargoArtifactsNative;
+          cargoArtifacts = cargoArtifactsNative;
+          inherit meta;
         });
     };
   };
