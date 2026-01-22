@@ -4,7 +4,7 @@
     fenix = {
       url = "github:nix-community/fenix/monthly";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.rust-analyzer-src.follows = "";
+      # inputs.rust-analyzer-src.follows = "";
     };
 
     flake-parts = {
