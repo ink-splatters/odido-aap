@@ -131,4 +131,4 @@ if __name__ == "__main__":
 
         check_and_update_data()
     except Exception:
-        logger.opt(exception=True).debug("Error:")
+        logger.opt(exception=True).error("Error:")
