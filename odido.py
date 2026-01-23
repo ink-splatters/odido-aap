@@ -22,6 +22,7 @@ def get_required_var(name: str) -> str:
 
 
 user_id: str = get_required_var("ODIDO_USER_ID")
+subscription_url: str = os.environ.get("ODIDO_SUBSCRIPTION_URL", "")
 access_token: str = get_required_var("ODIDO_TOKEN")
 threshold: int = int(os.environ.get("ODIDO_THRESHOLD", 1500))
 debug = int(os.environ.get("ODIDO_DEBUG", 0))
@@ -69,12 +70,12 @@ def check_and_update_data() -> None:
 
         try:
             data = response.json()
-            logger.debug(f"response: {json.dumps(data, indent=4)}")
+            logger.debug(f"Response: {json.dumps(data, indent=4)}")
         except ValueError:
             data = response.text
             if require_json:
-                raise ValueError(f"payload is not a json: {data}, but json is expected") from None
-            logger.debug(f"response: {data}")
+                raise ValueError(f"Payload is not a json: {data}.") from None
+            logger.debug(f"Response: {data}")
         return data
 
     # Create new header with Authorization
@@ -84,14 +85,18 @@ def check_and_update_data() -> None:
         "Accept": "application/json",
     }
 
-    logger.info("Fetching subscription details...")
-    response = requests.get(
-        f"https://capi.odido.nl/{user_id}/linkedsubscriptions",
-        headers=headers,
-    )
+    global subscription_url
+    if subscription_url:
+        logger.info("Using passed Subscription URL.")
+    else:
+        logger.info("Fetching subscription details...")
+        response = requests.get(
+            f"https://capi.odido.nl/{user_id}/linkedsubscriptions",
+            headers=headers,
+        )
 
-    data = verify_get_response_data(response, require_json=True)
-    subscription_url: str = data["subscriptions"][0]["SubscriptionURL"]
+        data = verify_get_response_data(response, require_json=True)
+        subscription_url = data["subscriptions"][0]["SubscriptionURL"]
 
     logger.info("Fetching roaming bundle information...")
     response = requests.get(subscription_url + "/roamingbundles", headers=headers)
