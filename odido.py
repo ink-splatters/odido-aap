@@ -8,6 +8,9 @@ from typing import Any, Literal, overload
 import requests
 from loguru import logger
 from requests import Response
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Credits
 # [Romkabouter430](https://tweakers.net/gallery/2749)
