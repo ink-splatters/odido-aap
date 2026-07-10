@@ -1,5 +1,5 @@
 # Python version target for modernizations
-target-version = "py312" # Use py312 for maximum Python 3.12 modernization features
+target-version = "py314"
 line-length = 100        # From upgrade/pyproject.toml
 #indent-width = 2
 
@@ -21,6 +21,7 @@ exclude = [
 select = [
   # Core Python modernization (our priority)
   "UP",     # pyupgrade - modernize Python code for target version
+  "FURB",   # handles idiomatic modern rewrites (e.g., open() -> Path.read_text()
   "FA",     # flake8-future-annotations - add future annotations import
   "ANN204", # flake8-annotations - require return type for __init__
   "TCH",    # flake8-type-checking - move imports under TYPE_CHECKING
@@ -28,7 +29,7 @@ select = [
 
   # Code quality from upgrade/pyproject.toml
   "E",   # pycodestyle errors
-  "W",   # pycodestyle warnings  
+  "W",   # pycodestyle warnings
   "F",   # pyflakes
   "I",   # isort - import sorting
   "N",   # pep8-naming
