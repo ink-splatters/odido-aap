@@ -6,9 +6,9 @@ import sys
 from typing import Any, Literal, overload
 
 import requests
+from dotenv import load_dotenv
 from loguru import logger
 from requests import Response
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -25,10 +25,11 @@ def get_required_var(name: str) -> str:
 
 
 user_id: str = get_required_var("ODIDO_USER_ID")
-subscription_url: str = os.environ.get("ODIDO_SUBSCRIPTION_URL", "")
+subscription_url: str = os.environ.get("ODIDO_CACHED_SUBSCRIPTION_URL", "")
 access_token: str = get_required_var("ODIDO_TOKEN")
-threshold: int = int(os.environ.get("ODIDO_THRESHOLD", 1500))
+threshold: int = int(os.environ.get("ODIDO_THRESHOLD", 400))
 debug = int(os.environ.get("ODIDO_DEBUG", 0))
+force_topup = int(os.environ.get("ODIDO_FORCE_TOPUP", 0))
 
 
 def setup_logger() -> None:
@@ -92,6 +93,10 @@ def check_and_update_data() -> None:
     if subscription_url:
         logger.info("Using passed Subscription URL.")
     else:
+        if force_topup:
+            logger.warning(
+                "Do cache subscription or force_topup does not make sense, as optimization!"
+            )
         logger.info("Fetching subscription details...")
         response = requests.get(
             f"https://capi.odido.nl/{user_id}/linkedsubscriptions",
@@ -101,25 +106,29 @@ def check_and_update_data() -> None:
         data = verify_get_response_data(response, require_json=True)
         subscription_url = data["subscriptions"][0]["SubscriptionURL"]
 
-    logger.info("Fetching roaming bundle information...")
-    response = requests.get(subscription_url + "/roamingbundles", headers=headers)
-    data = verify_get_response_data(response, require_json=True)
+    if not force_topup:
+        logger.info("Fetching roaming bundle information...")
+        response = requests.get(subscription_url + "/roamingbundles", headers=headers)
+        data = verify_get_response_data(response, require_json=True)
 
-    total_remaining = 0
-    for bundle in data["Bundles"]:
-        if bundle["ZoneColor"] == "NL":
-            remaining = bundle["Remaining"]
-            total_remaining += remaining["Value"]
+        total_remaining = 0
+        for bundle in data["Bundles"]:
+            if bundle["ZoneColor"] == "NL":
+                remaining = bundle["Remaining"]
+                total_remaining += remaining["Value"]
 
-    total_remaining_mb = round(total_remaining / 1024, 0)
-    logger.info(f"Data remaining: {total_remaining_mb} MB (Threshold: {threshold} MB)")
+        total_remaining_mb = round(total_remaining / 1024, 0)
+        logger.info(f"Data remaining: {total_remaining_mb} MB (Threshold: {threshold} MB)")
 
-    if total_remaining_mb < threshold:
-        logger.warning("Data is below threshold. Attempting to top up...")
+    if force_topup or total_remaining_mb < threshold:
+        if force_topup:
+            logger.info("Attempting to force top-up...")
+        else:
+            logger.warning("Data is below the threshold. Attempting to top up...")
         data = {"Bundles": [{"BuyingCode": "A0DAY01"}]}
         response = requests.post(subscription_url + "/roamingbundles", json=data, headers=headers)
         data = verify_get_response_data(response)
-        logger.info("Successfully requested 2000MB top-up.")
+        logger.info("Successfully requested 2000MB.")
 
     else:
         logger.info("Data is sufficient. No action needed.")

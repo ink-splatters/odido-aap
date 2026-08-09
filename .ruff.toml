@@ -2,6 +2,7 @@
 target-version = "py314"
 line-length = 100        # From upgrade/pyproject.toml
 #indent-width = 2
+respect-gitignore = true
 
 # Files to exclude
 exclude = [
@@ -21,7 +22,6 @@ exclude = [
 select = [
   # Core Python modernization (our priority)
   "UP",     # pyupgrade - modernize Python code for target version
-  "FURB",   # handles idiomatic modern rewrites (e.g., open() -> Path.read_text()
   "FA",     # flake8-future-annotations - add future annotations import
   "ANN204", # flake8-annotations - require return type for __init__
   "TCH",    # flake8-type-checking - move imports under TYPE_CHECKING
@@ -29,7 +29,7 @@ select = [
 
   # Code quality from upgrade/pyproject.toml
   "E",   # pycodestyle errors
-  "W",   # pycodestyle warnings
+  "W",   # pycodestyle warnings  
   "F",   # pyflakes
   "I",   # isort - import sorting
   "N",   # pep8-naming
@@ -91,6 +91,7 @@ mypy-init-return = true         # Require -> None for __init__
 [lint.isort]
 # Import sorting configuration
 force-single-line = false
+length-sort-straight = true
 
 [lint.flake8-bugbear]
 # Allow common patterns
